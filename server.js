@@ -71,6 +71,23 @@ app.post('/api/account/set-pin', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Account + data deletion. Public + rate-limited: the user proves ownership with
+// their email + PIN (same check as sign-in), then the whole record is erased.
+// Backs the Google Play "request account deletion" URL (/delete-account page).
+app.post('/api/account/delete', pinLimiter, async (req, res) => {
+  const email = String(req.body && req.body.email || '').trim().toLowerCase();
+  const pin = String(req.body && req.body.pin || '').trim();
+  if (!emailOk(email)) return res.status(400).json({ error: 'Enter a valid email.' });
+  if (!pinOk(pin)) return res.status(400).json({ error: 'PIN must be 6 digits.' });
+  const u = db.users[email];
+  if (!u || !u.pinHash || !bcrypt.compareSync(pin, u.pinHash)) {
+    return res.status(401).json({ error: 'That email + PIN didn’t match.' });
+  }
+  delete db.users[email];
+  await persist();
+  res.json({ ok: true });
+});
+
 app.post('/auth/signout', (req, res) => {
   const u = userByToken(req);
   const m = (req.get('authorization') || '').match(/^Bearer\s+(.+)$/i);
@@ -98,6 +115,10 @@ app.get('/api/planner/availability', auth, (req, res) => res.json({ email: req.q
 
 // Public privacy policy (required for the Google Play store listing).
 app.get(['/privacy', '/privacy-policy'], (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+
+// Public account + data deletion page (required by Google Play Data Safety).
+app.get(['/delete-account', '/delete', '/account/delete'], (req, res) =>
+  res.sendFile(path.join(__dirname, 'delete-account.html')));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 

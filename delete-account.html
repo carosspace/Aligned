@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aligned — Delete your account &amp; data</title>
+<style>
+  body{font-family:Georgia,serif;max-width:620px;margin:0 auto;padding:40px 22px;color:#2C1A0A;background:#F4EDE1;line-height:1.6}
+  h1{font-size:30px} h2{font-size:20px;margin-top:30px} a{color:#A9843F}
+  .muted{color:#8A7A66;font-size:14px}
+  .card{background:#FBF6EC;border:1px solid #E4D8C4;border-radius:14px;padding:22px;margin-top:24px}
+  label{display:block;font-size:14px;font-weight:bold;margin:14px 0 6px}
+  input{width:100%;box-sizing:border-box;font-family:Georgia,serif;font-size:16px;padding:11px 12px;
+        border:1px solid #CDBFA6;border-radius:9px;background:#fff;color:#2C1A0A}
+  button{margin-top:20px;width:100%;font-family:Georgia,serif;font-size:16px;font-weight:bold;
+         padding:13px;border:0;border-radius:9px;background:#8A2B2B;color:#fff;cursor:pointer}
+  button:disabled{opacity:.55;cursor:default}
+  .warn{background:#F6E7E7;border:1px solid #E0C2C2;color:#7A2222;border-radius:9px;padding:12px 14px;font-size:14px}
+  .msg{margin-top:16px;padding:12px 14px;border-radius:9px;font-size:15px;display:none}
+  .ok{background:#E6F0E4;border:1px solid #BFD8B8;color:#2E5A2A}
+  .err{background:#F6E7E7;border:1px solid #E0C2C2;color:#7A2222}
+  ul{padding-left:20px}
+</style>
+</head>
+<body>
+<h1>Delete your Aligned account &amp; data</h1>
+<p class="muted">Anima Temple · Aligned</p>
+
+<p>Use this page to permanently delete your Aligned cloud account and every piece of data
+associated with it. This applies only to data backed up to our server after you signed in — anything
+stored only on your device is removed by uninstalling the app or clearing its data.</p>
+
+<h2>What gets deleted</h2>
+<p>When you confirm below, we permanently and irreversibly delete from our server:</p>
+<ul>
+  <li>Your email address and secured PIN</li>
+  <li>Your entire backed-up planner: tasks, habits, cycle &amp; health logs, journal entries,
+      fitness logs, finance entries, notes, and all settings</li>
+  <li>All sign-in tokens for your account</li>
+</ul>
+<p class="muted">There is no separate retention period — the record is erased immediately and cannot be
+recovered.</p>
+
+<div class="card">
+  <p class="warn"><strong>This cannot be undone.</strong> Enter the email and 6-digit PIN you sign in
+  with to confirm it's your account.</p>
+  <label for="email">Email</label>
+  <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+  <label for="pin">6-digit PIN</label>
+  <input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••">
+  <button id="go">Permanently delete my account</button>
+  <div id="msg" class="msg"></div>
+</div>
+
+<h2>Prefer email?</h2>
+<p>You can also request deletion by emailing
+<a href="mailto:ribeirocaro11@hotmail.com">ribeirocaro11@hotmail.com</a> from your account's email
+address, and we will delete it for you.</p>
+
+<script>
+  var API = '';                     // same origin as this page
+  var btn = document.getElementById('go');
+  var msg = document.getElementById('msg');
+  function show(kind, text){ msg.className = 'msg ' + kind; msg.textContent = text; msg.style.display = 'block'; }
+  btn.addEventListener('click', function(){
+    var email = document.getElementById('email').value.trim().toLowerCase();
+    var pin = document.getElementById('pin').value.trim();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { show('err','Enter a valid email address.'); return; }
+    if (!/^\d{6}$/.test(pin)) { show('err','PIN must be exactly 6 digits.'); return; }
+    if (!confirm('Permanently delete the Aligned account for ' + email + '? This cannot be undone.')) return;
+    btn.disabled = true; show('ok','Deleting…');
+    fetch(API + '/api/account/delete', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: email, pin: pin })
+    }).then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(res){
+        if (res.ok && res.j.ok) {
+          show('ok','Your account and all associated data have been permanently deleted.');
+          document.getElementById('email').value = ''; document.getElementById('pin').value = '';
+        } else {
+          btn.disabled = false;
+          show('err', (res.j && res.j.error) || 'Could not delete the account. Check your email and PIN.');
+        }
+      }).catch(function(){ btn.disabled = false; show('err','Network error. Please try again.'); });
+  });
+</script>
+</body>
+</html>
