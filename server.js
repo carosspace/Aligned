@@ -2,6 +2,7 @@
 // Token-based (Authorization: Bearer <token>), no cookies — reliable inside the
 // Android WebView. Data is stored per user as an opaque JSON blob.
 const express = require('express');
+const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
@@ -94,6 +95,9 @@ app.post('/api/planner', auth, async (req, res) => {
 app.get('/api/planner/links', auth, (req, res) => res.json({ links: [], incoming: [], outgoing: [] }));
 app.post('/api/planner/links', auth, (req, res) => res.json({ ok: true }));
 app.get('/api/planner/availability', auth, (req, res) => res.json({ email: req.query.email || '', days: {} }));
+
+// Public privacy policy (required for the Google Play store listing).
+app.get(['/privacy', '/privacy-policy'], (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
